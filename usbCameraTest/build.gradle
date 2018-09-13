@@ -27,19 +27,25 @@ android {
 	compileSdkVersion versionCompiler
 	buildToolsVersion versionBuildTool
 
-	compileOptions {
-		sourceCompatibility javaSourceCompatibility
-		targetCompatibility javaTargetCompatibility
-	}
-
     defaultConfig {
         applicationId "com.serenegiant.usbcameratest"
-        minSdkVersion 14
+        minSdkVersion 18
 		targetSdkVersion versionTarget
 		versionCode 8
 		versionName "3.00"
+
+        ndk {
+            abiFilters   'armeabi-v7a','x86'//, 'armeabi-v7a', 'x86_64', 'arm64-v8a', mips, mips64...加入需要生成的文件夹
+        }
+      jackOptions {
+            enabled true
+        }
     }
 
+    compileOptions {
+        sourceCompatibility javaSourceCompatibility
+        targetCompatibility javaTargetCompatibility
+    }
     buildTypes {
         release {
             minifyEnabled true
@@ -49,5 +55,6 @@ android {
 }
 
 dependencies {
-    compile project(':libuvccamera')
+    compile 'org.tensorflow:tensorflow-android:+'
+    compile project(':usbCameraCommon')
 }

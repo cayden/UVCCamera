@@ -210,6 +210,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 				if (mCameraHandler.isOpened()) {
 					if (checkPermissionWriteExternalStorage()) {
 						mCameraHandler.captureStill();
+
 					}
 					return true;
 				}

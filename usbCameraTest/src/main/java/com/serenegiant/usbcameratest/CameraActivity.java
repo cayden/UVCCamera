@@ -29,7 +29,6 @@ import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
@@ -55,27 +54,23 @@ import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.USBMonitor.OnDeviceConnectListener;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCCamera;
-import com.serenegiant.utils.ImageUtils;
 import com.serenegiant.widget.SimpleUVCCameraTextureView;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 import java.util.Vector;
 
 /**
  *  Created by caydencui on 2018/9/6.
  */
-public final class MainActivity extends BaseActivity implements OnClickListener, CameraDialog.CameraDialogParent,IFrameCallback {
+public final class CameraActivity extends BaseActivity implements OnClickListener, CameraDialog.CameraDialogParent,IFrameCallback {
 	private static final String TAG="TAG";
 	private final Object mSync = new Object();
     // for accessing USB and USB camera
@@ -99,7 +94,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
+		setContentView(R.layout.activity_camera);
 		mCameraButton = (ImageButton)findViewById(R.id.camera_button);
 		iv_face=(ImageView)findViewById(R.id.iv_face);
 		tv_result=(TextView)findViewById(R.id.text_view);
@@ -203,7 +198,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 			synchronized (mSync) {
 				if (mUVCCamera == null) {
 					isGettingFace=true;
-					CameraDialog.showDialog(MainActivity.this);
+					CameraDialog.showDialog(CameraActivity.this);
 
 				} else {
 					releaseCamera();
@@ -217,7 +212,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 	private final OnDeviceConnectListener mOnDeviceConnectListener = new OnDeviceConnectListener() {
 		@Override
 		public void onAttach(final UsbDevice device) {
-			Toast.makeText(MainActivity.this, "USB_DEVICE_ATTACHED", Toast.LENGTH_SHORT).show();
+			Toast.makeText(CameraActivity.this, "USB_DEVICE_ATTACHED", Toast.LENGTH_SHORT).show();
 		}
 
 		@Override
@@ -243,7 +238,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 							runOnUiThread(new Runnable() {
 								@Override
 								public void run() {
-									final Toast toast = Toast.makeText(MainActivity.this, "onStatus(statusClass=" + statusClass
+									final Toast toast = Toast.makeText(CameraActivity.this, "onStatus(statusClass=" + statusClass
 											+ "; " +
 											"event=" + event + "; " +
 											"selector=" + selector + "; " +
@@ -260,14 +255,14 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 							});
 						}
 					});
-					camera.setFrameCallback(MainActivity.this,UVCCamera.PIXEL_FORMAT_YUV420SP);
+					camera.setFrameCallback(CameraActivity.this,UVCCamera.PIXEL_FORMAT_YUV420SP);
 					camera.setButtonCallback(new IButtonCallback() {
 						@Override
 						public void onButton(final int button, final int state) {
 							runOnUiThread(new Runnable() {
 								@Override
 								public void run() {
-									final Toast toast = Toast.makeText(MainActivity.this, "onButton(button=" + button + "; " +
+									final Toast toast = Toast.makeText(CameraActivity.this, "onButton(button=" + button + "; " +
 											"state=" + state + ")", Toast.LENGTH_SHORT);
 									synchronized (mSync) {
 										if (mToast != null) {
@@ -318,7 +313,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 
 		@Override
 		public void onDettach(final UsbDevice device) {
-			Toast.makeText(MainActivity.this, "USB_DEVICE_DETACHED", Toast.LENGTH_SHORT).show();
+			Toast.makeText(CameraActivity.this, "USB_DEVICE_DETACHED", Toast.LENGTH_SHORT).show();
 		}
 
 		@Override

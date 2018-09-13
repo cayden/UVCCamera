@@ -1,4 +1,4 @@
-package com.tencent.face.stream;
+package com.serenegiant.stream;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

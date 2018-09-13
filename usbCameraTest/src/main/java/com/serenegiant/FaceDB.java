@@ -1,11 +1,11 @@
-package com.tencent.face.facerecognition;
+package com.serenegiant;
 
 import android.util.Log;
 
-import com.tencent.face.facenet.FaceFeature;
-import com.tencent.face.facenet.MTCNN;
-import com.tencent.face.stream.ExtInputStream;
-import com.tencent.face.stream.ExtOutputStream;
+import com.serenegiant.facenet.FaceFeature;
+import com.serenegiant.stream.ExtInputStream;
+import com.serenegiant.stream.ExtOutputStream;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,10 +26,11 @@ public class FaceDB {
     private final String TAG = this.getClass().toString();
 
     String mDBPath;
-     List<FaceRegist> mRegister;
+    public List<FaceRegist> mRegister;
     private FaceDB() {
 
     }
+
     private static class SingletonInstance {
         private static final FaceDB INSTANCE = new FaceDB();
     }
@@ -43,9 +44,9 @@ public class FaceDB {
         mRegister = new ArrayList<>();
     }
 
-    class FaceRegist {
-        String mName;
-        FaceFeature faceFeature;
+    public class FaceRegist {
+        public String mName;
+        public FaceFeature faceFeature;
 
         public FaceRegist(String name) {
             mName = name;

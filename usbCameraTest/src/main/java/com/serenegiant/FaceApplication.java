@@ -1,4 +1,4 @@
-package com.tencent.face;
+package com.serenegiant;
 
 import android.app.Application;
 import android.content.Context;
@@ -10,7 +10,6 @@ import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 
-import com.tencent.face.facerecognition.FaceDB;
 
 
 /**

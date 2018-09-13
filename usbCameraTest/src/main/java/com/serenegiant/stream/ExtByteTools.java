@@ -1,4 +1,4 @@
-package com.tencent.face.stream;
+package com.serenegiant.stream;
 
 /**
  * Created by caydencui on 2018/9/6.

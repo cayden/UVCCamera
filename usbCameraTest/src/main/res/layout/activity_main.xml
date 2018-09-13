@@ -21,27 +21,121 @@
   ~  Files in the libjpeg-turbo, libusb, libuvc, rapidjson folder
   ~  may have a different license, see the respective files.
   -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.serenegiant.usbcameratest.MainActivity"
+    tools:context="com.serenegiant.usbcameratest.CameraActivity"
+    android:layout_weight="4"
     tools:ignore="MergeRootFrame" >
 
-    <com.serenegiant.widget.SimpleUVCCameraTextureView
-        android:id="@+id/UVCCameraTextureView1"
-        android:layout_width="match_parent"
+    <RelativeLayout
+        android:id="@+id/fl_layout"
+        android:layout_weight="3"
+        android:layout_width="0dp"
+        android:layout_height="match_parent">
+        <com.serenegiant.widget.UVCCameraTextureView
+            android:id="@+id/camera_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true" />
+
+        <ImageView
+            android:id="@+id/frame_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/camera_view"
+            android:layout_alignBottom="@+id/camera_view"
+            android:layout_alignLeft="@+id/camera_view"
+            android:layout_alignRight="@+id/camera_view"
+            android:src="@drawable/border" />
+
+        <ToggleButton
+            android:id="@+id/camera_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/camera_view"
+            android:layout_alignTop="@id/camera_view"
+            android:text="ToggleButton" />
+
+        <ImageButton
+            android:id="@+id/capture_button"
+            android:layout_width="@dimen/button_size"
+            android:layout_height="@dimen/button_size"
+            android:layout_alignBottom="@id/camera_view"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="6dp"
+            android:background="@null"
+            android:scaleType="centerCrop"
+            android:src="@android:drawable/ic_menu_camera" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_weight="1"
+        android:layout_width="0dp"
+        android:gravity="center_horizontal"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
-        android:background="#ff000000" />
+        android:orientation="vertical"
+        >
 
-    <ImageButton
-        android:id="@+id/camera_button"
-        android:layout_width="@dimen/button_size"
-        android:layout_height="@dimen/button_size"
-        android:contentDescription="@string/camera"
-        android:scaleType="centerCrop"
-        android:src="@android:drawable/ic_menu_camera" />
+        <ImageView
+            android:layout_marginTop="10dp"
+            android:id="@+id/iv_image"
+            android:layout_width="wrap_content"
+            android:layout_weight="1"
+            android:layout_height="0dp"
+            android:src="@drawable/ic_launcher"/>
 
-</FrameLayout>
+        <EditText
+            android:id="@+id/et_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="请输入名字"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btn_camera"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="拍照"/>
+            <Button
+                android:id="@+id/btn_register"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="保存"/>
+        </LinearLayout>
+
+
+        <Button
+            android:layout_marginTop="20dp"
+            android:id="@+id/btn_compare"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="开始比对"/>
+
+        <ImageView
+            android:layout_marginTop="10dp"
+            android:id="@+id/iv_face"
+            android:layout_width="80dp"
+            android:layout_weight="1"
+            android:layout_height="0dp"
+            android:src="@drawable/ic_launcher"/>
+
+        <TextView
+            android:id="@+id/text_view"
+            android:layout_width="wrap_content"
+            android:layout_weight="1"
+            android:layout_height="0dp"
+            android:text="相似度:"
+            android:textSize="16sp" />
+
+
+
+    </LinearLayout>
+
+</LinearLayout>
