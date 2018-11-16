@@ -226,7 +226,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		} else {
 			scale_bit = height / (float) ih;
 		}
-		scale_bit=scale_bit+0.4312f;
+		scale_bit=scale_bit-0.3312f;
 		Log.d(TAG,"…………width:"+width+",height:"+height+"………………………………………………………………………………scale_bit …………………………………………………………………………………………:"+scale_bit);
 		ViewGroup.LayoutParams params = draw_view.getLayoutParams();
 		params.width = width;
@@ -527,7 +527,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 						x1 = rect[0] * scale_bit;
 					float y1 = rect[1] * scale_bit;
 
-					float rect_width = rect[2] * scale_bit;
+					float rect_width = rect[2] * scale_bit*0.8f;
 
 //                    float x_ = y1;
 //                    float y_ = x1;
@@ -559,7 +559,7 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 					float y2 = rect[1] * scale_bit;
 
 					float length = rect[3] * scale_bit / 5;
-					float width = rect[3] * scale_bit;
+					float width = rect[3] * scale_bit*0.8f;
 					float heng = size / 2;
 					canvas.drawLine(x2 - heng, y2, x2 + length, y2, paint);
 					canvas.drawLine(x2, y2 - heng, x2, y2 + length, paint);
