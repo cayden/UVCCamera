@@ -71,12 +71,20 @@ public class FaceDB {
         return false;
     }
 
-
+    /**
+     * 加载数据
+     * @return
+     */
     private boolean loadInfo() {
         if (!mRegister.isEmpty()) {
             return false;
         }
         try {
+            File file=new File(mDBPath );
+            if(!file.exists()){
+                file.mkdir();
+
+            }
             FileInputStream fs = new FileInputStream(mDBPath + "/face.txt");
             ExtInputStream bos = new ExtInputStream(fs);
             //load version
@@ -101,6 +109,10 @@ public class FaceDB {
         return false;
     }
 
+    /**
+     * 加载人脸数据
+     * @return
+     */
     public boolean loadFaces(){
         if (loadInfo()) {
             try {
@@ -122,6 +134,11 @@ public class FaceDB {
         return false;
     }
 
+    /**
+     * 添加人脸数据信息
+     * @param name
+     * @param face
+     */
     public	void addFace(String name, FaceFeature face) {
         try {
             //check if already registered.
@@ -160,6 +177,11 @@ public class FaceDB {
         }
     }
 
+    /**
+     * 删除对应人脸信息
+     * @param name
+     * @return
+     */
     public boolean delete(String name) {
         try {
             //check if already registered.

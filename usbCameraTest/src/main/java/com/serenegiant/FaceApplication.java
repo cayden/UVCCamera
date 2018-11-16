@@ -22,6 +22,9 @@ public class FaceApplication extends Application {
     Uri mImage;
     private static FaceApplication instance;
 
+    //绘制左右翻转
+    public static final boolean yu = true;
+
     public FaceApplication(){
 
     }

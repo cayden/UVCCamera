@@ -56,5 +56,6 @@ android {
 
 dependencies {
     compile 'org.tensorflow:tensorflow-android:+'
+    compile files('libs/libutils.jar')
     compile project(':usbCameraCommon')
 }

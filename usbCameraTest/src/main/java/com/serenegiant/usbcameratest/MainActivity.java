@@ -27,8 +27,15 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.hardware.usb.UsbDevice;
 import android.media.AudioManager;
 import android.media.MediaScannerConnection;
@@ -41,9 +48,11 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -53,6 +62,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.serenegiant.FaceApplication;
 import com.serenegiant.FaceDB;
 import com.serenegiant.common.BaseActivity;
 import com.serenegiant.encoder.MediaAudioEncoder;
@@ -89,6 +99,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
+
+import dou.utils.DisplayUtil;
 
 public final class MainActivity extends BaseActivity implements OnClickListener,CameraDialog.CameraDialogParent,IFrameCallback {
 	private static final boolean DEBUG = true;	// TODO set false on release
@@ -150,6 +162,10 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 	private boolean isNeedCallBack=false;
 	private static boolean isGettingFace = false;
 
+	protected int iw = 0, ih;
+	private float scale_bit=0.5f;
+	private SurfaceView draw_view;
+
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -169,6 +185,9 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		btn_compare=(Button)findViewById(R.id.btn_compare);
 		et_name=(EditText)findViewById(R.id.et_name);
 
+
+
+
 		btn_camera.setOnClickListener(this);
 		btn_register.setOnClickListener(this);
 		btn_compare.setOnClickListener(this);
@@ -180,6 +199,13 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		mUVCCameraView = (CameraViewInterface)view;
 		mUVCCameraView.setAspectRatio(PREVIEW_WIDTH / (float)PREVIEW_HEIGHT);
 
+		/**
+		 * 人脸标记覆层
+		 */
+		draw_view = (SurfaceView) findViewById(R.id.pointView);
+		draw_view.setZOrderOnTop(true);
+		draw_view.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+
 		mUSBMonitor = new USBMonitor(this, mOnDeviceConnectListener);
 //		mCameraHandler = UVCCameraHandler.createHandler(this, mUVCCameraView,
 //			2, PREVIEW_WIDTH, PREVIEW_HEIGHT, PREVIEW_MODE);
@@ -188,6 +214,24 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		facenet=Facenet.getInstance();
 		mtcnn=MTCNN.getInstance();
 		FaceDB.getInstance().loadFaces();
+
+
+		int width = UVCCamera.DEFAULT_PREVIEW_WIDTH;
+		int height =UVCCamera.DEFAULT_PREVIEW_HEIGHT;
+
+		ih=UVCCamera.DEFAULT_PREVIEW_HEIGHT;
+		if (width < height) {
+			scale_bit = width / (float) ih;
+
+		} else {
+			scale_bit = height / (float) ih;
+		}
+		scale_bit=scale_bit+0.4312f;
+		Log.d(TAG,"…………width:"+width+",height:"+height+"………………………………………………………………………………scale_bit …………………………………………………………………………………………:"+scale_bit);
+		ViewGroup.LayoutParams params = draw_view.getLayoutParams();
+		params.width = width;
+		params.height = height;
+		draw_view.requestLayout();
 	}
 	Bitmap mBitmapFace1;
 
@@ -278,6 +322,8 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		mCaptureButton = null;
 		super.onDestroy();
 	}
+
+
 
 	protected void checkPermissionResult(final int requestCode, final String permission, final boolean result) {
 		super.checkPermissionResult(requestCode, permission, result);
@@ -380,6 +426,243 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 				mCaptureButton.setVisibility(View.VISIBLE);
 			}
 		});
+
+
+	}
+
+
+
+	@Override
+	public void onFrame(ByteBuffer frame) {
+		/**
+		 *According to each frame image, extract facial feature values, and then perform face matching
+		 */
+		try {
+//			Log.d(TAG,"~~~~~~~~~~~~~~~~~~~onFrame~~~~~~~~~~~~~~~");
+			byte[] data=new byte[frame.remaining()];
+			frame.get(data);
+			int[] rgb=new int[UVCCamera.DEFAULT_PREVIEW_WIDTH*UVCCamera.DEFAULT_PREVIEW_HEIGHT];
+			decodeYUV420SP(rgb,data,UVCCamera.DEFAULT_PREVIEW_WIDTH,UVCCamera.DEFAULT_PREVIEW_HEIGHT);
+//			bitmap = Bitmap.createBitmap(UVCCamera.DEFAULT_PREVIEW_WIDTH, UVCCamera.DEFAULT_PREVIEW_HEIGHT,Bitmap.Config.RGB_565);
+			Bitmap bitmap = Bitmap.createBitmap(rgb, UVCCamera.DEFAULT_PREVIEW_WIDTH,
+					UVCCamera.DEFAULT_PREVIEW_HEIGHT, Bitmap.Config.RGB_565);
+			bitmap = comp(bitmap);
+			if(isNeedCallBack) {
+//				ImageUtils.saveImageData(bitmabToBytes(bitmap));
+				Bitmap bm1= Utils.copyBitmap(bitmap);
+				Vector<Box> boxes=mtcnn.detectFaces(bitmap,40);
+				drawAnim(boxes,draw_view,1,1,"");
+				if (boxes.size()==0) return ;
+				for (int i=0;i<boxes.size();i++) Utils.drawBox(bitmap,boxes.get(i),1+bitmap.getWidth()/500 );
+				Log.i("Main","[*]boxNum："+boxes.size());
+				Box box=boxes.get(0);
+				Rect rect1=box.transform2Rect();
+
+				//MTCNN检测到的人脸框，再上下左右扩展margin个像素点，再放入facenet中。
+				int margin=20; //20这个值是facenet中设置的。自己应该可以调整。
+				Utils.rectExtend(bitmap,rect1,margin);
+				//要比较的两个人脸，加厚Rect
+				Utils.drawRect(bitmap,rect1,1+bitmap.getWidth()/100 );
+				//(2)裁剪出人脸(只取第一张)
+				final Bitmap face1=Utils.crop(bitmap,rect1);
+
+				FaceFeature ff1=facenet.recognizeImage(face1);
+				if(null==ff1||ff1.getFeature().length<0)return;
+				List<FaceDB.FaceRegist> mResgist =FaceDB.getInstance().mRegister;
+				double tempScore=-1;
+				for(int i=0;i<mResgist.size();i++){
+					FaceDB.FaceRegist faceRegist= mResgist.get(i);
+					double temp= ff1.compare(faceRegist.faceFeature);
+
+					if(tempScore==-1){
+						tempScore=temp;//第一次直接fuzhi
+						username=faceRegist.mName;
+					}else{
+						if(tempScore>temp){
+							username=faceRegist.mName;
+							tempScore=temp;
+						}
+					}
+					Log.d(TAG,">>>>>>>>>>temp="+temp+",tempScore="+tempScore);
+				}
+				cmp=tempScore;
+
+				//(显示人脸)
+//				Thread.sleep(1000);
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						iv_face.setImageBitmap(face1);
+						tv_result.setText(String.format("名字:%s  \n相似度 :  %.4f", username,cmp) );
+					}
+				});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+
+	protected void drawAnim(Vector<Box> faces, SurfaceView outputView, float scale_bit, int cameraId, String fps) {
+		Paint paint=new Paint();
+		Canvas canvas = ((SurfaceView) outputView).getHolder().lockCanvas();
+		if(canvas!=null){
+			try{
+				int viewH=outputView.getHeight();
+				int viewW=outputView.getWidth();
+				canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+				if(faces==null||faces.size()==0)return;
+				for(int i=0;i<faces.size();i++){
+					paint.setColor(0x44ffffff);
+					int size = DisplayUtil.dip2px(this, 3);
+
+					paint.setStrokeWidth(size);
+					paint.setStyle(Paint.Style.STROKE);
+
+					Box box=faces.get(i);
+					float[] rect=box.transform2float();
+					float x1 = viewW - rect[0] * scale_bit - rect[2] * scale_bit;
+					if (cameraId == (FaceApplication.yu ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK))
+						x1 = rect[0] * scale_bit;
+					float y1 = rect[1] * scale_bit;
+
+					float rect_width = rect[2] * scale_bit;
+
+//                    float x_ = y1;
+//                    float y_ = x1;
+//                    y_ = viewH - y_ - rect_width;
+//                    RectF rectf = new RectF(x_, y_, x_ + rect_width, y_ + rect_width);
+
+
+					//draw rect
+					RectF rectf = new RectF(x1, y1, x1 + rect_width, y1 + rect_width);
+					canvas.drawRect(rectf, paint);
+
+//                    DLog.d(rect[0] + " : " + rect[1] + " : " + rect[2] + ": " + rect[3]);
+					//draw grid
+					int line = 10;
+					int per_line = (int) (rect_width / (line + 1));
+					int smailSize = DisplayUtil.dip2px(this, 1.5f);
+					paint.setStrokeWidth(smailSize);
+					for (int j = 1; j < line + 1; j++) {
+						canvas.drawLine(x1 + per_line * j, y1, x1 + per_line * j, y1 + rect_width, paint);
+						canvas.drawLine(x1, y1 + per_line * j, x1 + rect_width, y1 + per_line * j, paint);
+					}
+
+					paint.setStrokeWidth(size);
+					paint.setColor(Color.WHITE);
+//                    注意前置后置摄像头问题
+					float x2 = viewW - rect[0] * scale_bit - rect[2] * scale_bit;
+					if (cameraId == (FaceApplication.yu ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK))
+						x2 = rect[0] * scale_bit;
+					float y2 = rect[1] * scale_bit;
+
+					float length = rect[3] * scale_bit / 5;
+					float width = rect[3] * scale_bit;
+					float heng = size / 2;
+					canvas.drawLine(x2 - heng, y2, x2 + length, y2, paint);
+					canvas.drawLine(x2, y2 - heng, x2, y2 + length, paint);
+
+					x2 = x2 + width;
+					canvas.drawLine(x2 + heng, y2, x2 - length, y2, paint);
+					canvas.drawLine(x2, y2 - heng, x2, y2 + length, paint);
+
+					y2 = y2 + width;
+					canvas.drawLine(x2 + heng, y2, x2 - length, y2, paint);
+					canvas.drawLine(x2, y2 + heng, x2, y2 - length, paint);
+
+					x2 = x2 - width;
+					canvas.drawLine(x2 - heng, y2, x2 + length, y2, paint);
+					canvas.drawLine(x2, y2 + heng, x2, y2 - length, paint);
+
+
+
+				}
+
+			}catch (Exception e){
+				e.printStackTrace();
+			} finally {
+				((SurfaceView) outputView).getHolder().unlockCanvasAndPost(canvas);
+			}
+		}
+	}
+
+	protected void drawAnim1(Vector<Box> faces, SurfaceView outputView, float scale_bit, int cameraId, String fps) {
+		Paint paint=new Paint();
+		Canvas canvas = ((SurfaceView) outputView).getHolder().lockCanvas();
+		if(canvas!=null){
+			try{
+				int viewH=outputView.getHeight();
+				int viewW=outputView.getWidth();
+				canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+				if(faces==null||faces.size()==0)return;
+				for(int i=0;i<faces.size();i++){
+					paint.setColor(0x44ffffff);
+					int size = DisplayUtil.dip2px(this, 3);
+
+					paint.setStrokeWidth(size);
+					paint.setStyle(Paint.Style.STROKE);
+
+					Box box=faces.get(i);
+					Rect rect1=box.transform2Rect();
+//					float x1 = viewW - rect1.left * scale_bit - rect1.right * scale_bit;
+					float x1 = rect1.left* scale_bit;
+					float y1 = rect1.top* scale_bit;
+
+					float rect_width = rect1.right  * scale_bit;
+					//draw rect
+					RectF rectf = new RectF(x1, y1, x1 + rect_width, y1 + rect_width);
+					canvas.drawRect(rectf, paint);
+
+
+					//draw grid
+					int line = 10;
+					int per_line = (int) (rect_width / (line + 1));
+					int smailSize = DisplayUtil.dip2px(this, 1.5f);
+					paint.setStrokeWidth(smailSize);
+					for (int j = 1; j < line + 1; j++) {
+						canvas.drawLine(x1 + per_line * j, y1, x1 + per_line * j, y1 + rect_width, paint);
+						canvas.drawLine(x1, y1 + per_line * j, x1 + rect_width, y1 + per_line * j, paint);
+					}
+
+					paint.setStrokeWidth(size);
+					paint.setColor(Color.WHITE);
+
+//                    注意前置后置摄像头问题
+//					float x2 = viewW - rect1.left * scale_bit - rect1.right * scale_bit;
+					float x2 = rect1.left * scale_bit;
+//					if (cameraId == (BaseApplication.yu ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK))
+//						x2 = rect[0] * scale_bit;
+					float y2 = rect1.top* scale_bit;
+
+					float length = rect1.bottom * scale_bit / 5;
+					float width = rect1.bottom* scale_bit;
+					float heng = size / 2;
+					canvas.drawLine(x2 - heng, y2, x2 + length, y2, paint);
+					canvas.drawLine(x2, y2 - heng, x2, y2 + length, paint);
+
+					x2 = x2 + width;
+					canvas.drawLine(x2 + heng, y2, x2 - length, y2, paint);
+					canvas.drawLine(x2, y2 - heng, x2, y2 + length, paint);
+
+					y2 = y2 + width;
+					canvas.drawLine(x2 + heng, y2, x2 - length, y2, paint);
+					canvas.drawLine(x2, y2 + heng, x2, y2 - length, paint);
+
+					x2 = x2 - width;
+					canvas.drawLine(x2 - heng, y2, x2 + length, y2, paint);
+					canvas.drawLine(x2, y2 + heng, x2, y2 - length, paint);
+
+
+				}
+
+			}catch (Exception e){
+				e.printStackTrace();
+			} finally {
+				((SurfaceView) outputView).getHolder().unlockCanvasAndPost(canvas);
+			}
+		}
 	}
 
 	private final OnDeviceConnectListener mOnDeviceConnectListener = new OnDeviceConnectListener() {
@@ -879,7 +1162,13 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		}
 	}
 
-
+	/**
+	 * yuv转420sp
+	 * @param rgb
+	 * @param yuv420sp
+	 * @param width
+	 * @param height
+	 */
 	static public void decodeYUV420SP(int[] rgb, byte[] yuv420sp, int width, int height) {
 		final int frameSize = width * height;
 
@@ -907,74 +1196,6 @@ public final class MainActivity extends BaseActivity implements OnClickListener,
 		}
 	}
 
-
-	@Override
-	public void onFrame(ByteBuffer frame) {
-		/**
-		 *According to each frame image, extract facial feature values, and then perform face matching
-		 */
-		try {
-//			Log.d(TAG,"~~~~~~~~~~~~~~~~~~~onFrame~~~~~~~~~~~~~~~");
-			byte[] data=new byte[frame.remaining()];
-			frame.get(data);
-			int[] rgb=new int[UVCCamera.DEFAULT_PREVIEW_WIDTH*UVCCamera.DEFAULT_PREVIEW_HEIGHT];
-			decodeYUV420SP(rgb,data,UVCCamera.DEFAULT_PREVIEW_WIDTH,UVCCamera.DEFAULT_PREVIEW_HEIGHT);
-//			bitmap = Bitmap.createBitmap(UVCCamera.DEFAULT_PREVIEW_WIDTH, UVCCamera.DEFAULT_PREVIEW_HEIGHT,Bitmap.Config.RGB_565);
-			Bitmap bitmap = Bitmap.createBitmap(rgb, UVCCamera.DEFAULT_PREVIEW_WIDTH,
-					UVCCamera.DEFAULT_PREVIEW_HEIGHT, Bitmap.Config.RGB_565);
-			bitmap = comp(bitmap);
-			if(isNeedCallBack) {
-//				ImageUtils.saveImageData(bitmabToBytes(bitmap));
-				Bitmap bm1= Utils.copyBitmap(bitmap);
-				Vector<Box> boxes=mtcnn.detectFaces(bitmap,40);
-				if (boxes.size()==0) return ;
-				for (int i=0;i<boxes.size();i++) Utils.drawBox(bitmap,boxes.get(i),1+bitmap.getWidth()/500 );
-				Log.i("Main","[*]boxNum"+boxes.size());
-				Rect rect1=boxes.get(0).transform2Rect();
-				//MTCNN检测到的人脸框，再上下左右扩展margin个像素点，再放入facenet中。
-				int margin=20; //20这个值是facenet中设置的。自己应该可以调整。
-				Utils.rectExtend(bitmap,rect1,margin);
-				//要比较的两个人脸，加厚Rect
-				Utils.drawRect(bitmap,rect1,1+bitmap.getWidth()/100 );
-				//(2)裁剪出人脸(只取第一张)
-				final Bitmap face1=Utils.crop(bitmap,rect1);
-
-				FaceFeature ff1=facenet.recognizeImage(face1);
-				if(null==ff1||ff1.getFeature().length<0)return;
-				List<FaceDB.FaceRegist> mResgist =FaceDB.getInstance().mRegister;
-				double tempScore=-1;
-				for(int i=0;i<mResgist.size();i++){
-					FaceDB.FaceRegist faceRegist= mResgist.get(i);
-					double temp= ff1.compare(faceRegist.faceFeature);
-
-					if(tempScore==-1){
-						tempScore=temp;//第一次直接fuzhi
-						username=faceRegist.mName;
-					}else{
-						if(tempScore>temp){
-							username=faceRegist.mName;
-							tempScore=temp;
-						}
-					}
-					Log.d(TAG,">>>>>>>>>>temp="+temp+",tempScore="+tempScore);
-				}
-				cmp=tempScore;
-
-				//(显示人脸)
-				Thread.sleep(1000);
-				runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						iv_face.setImageBitmap(face1);
-						tv_result.setText(String.format("名字:%s  \n相似度 :  %.4f", username,cmp) );
-					}
-				});
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
 
 
 	public byte[] bitmabToBytes(Bitmap bitmap){

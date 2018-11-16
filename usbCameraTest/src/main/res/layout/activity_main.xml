@@ -41,7 +41,13 @@
             android:layout_height="match_parent"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true" />
-
+        <SurfaceView
+            android:id="@+id/pointView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"/>
         <ImageView
             android:id="@+id/frame_image"
             android:layout_width="wrap_content"

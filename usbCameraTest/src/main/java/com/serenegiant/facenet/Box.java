@@ -36,6 +36,17 @@ public class Box {
         rect.bottom= Math.round(box[3]);
         return  rect;
     }
+
+    public float[] transform2float(){
+        float [] floats=new float[4];
+
+        floats[0]=Math.round(box[0]);
+        floats[1]=Math.round(box[1]);
+        floats[2]=Math.round(box[2]);
+        floats[3]=Math.round(box[3]);
+
+        return  floats;
+    }
     //面积
     public  int area(){
         return width()*height();
